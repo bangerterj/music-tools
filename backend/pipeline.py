@@ -217,7 +217,7 @@ def generate_stems(
             model="meta/musicgen",
             input={
                 "prompt": enriched_prompt,
-                "duration": 15,
+                "duration": 30,
                 "model_version": "stereo-melody-large",
                 "output_format": "wav",
                 "normalization_strategy": "peak",

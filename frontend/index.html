@@ -301,7 +301,7 @@
       <button id="record-btn" aria-label="Start recording">
         <div class="dot"></div>
       </button>
-      <span id="record-label">Click to record &nbsp;·&nbsp; max 15s</span>
+      <span id="record-label">Click to record &nbsp;·&nbsp; max 30s</span>
       <span id="timer"></span>
       <canvas id="waveform" width="400" height="48"></canvas>
     </div>
@@ -392,7 +392,7 @@
     let animFrame     = null;
     let analyser      = null;
     let startTime     = 0;
-    const MAX_SECONDS = 15;
+    const MAX_SECONDS = 30;
 
     // ── Waveform ──────────────────────────────────────────────
     function drawWaveform() {
