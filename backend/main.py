@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 import pipeline
 
@@ -16,7 +17,7 @@ app = FastAPI(title="Music Augmentation Tool")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # localhost-only dev tool, open is fine
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -78,6 +79,17 @@ def run_pipeline(job_id: str, input_path: Path, bpm: int, style_prompt: str) -> 
 
     except Exception as exc:
         fail(str(exc))
+
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+
+FRONTEND = Path(__file__).parent.parent / "frontend"
+if FRONTEND.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND)), name="static")
+
+@app.get("/")
+def index():
+    return FileResponse(str(FRONTEND / "index.html"))
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
