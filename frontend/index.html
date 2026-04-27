@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #e8e8e8;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ── Record section ── */
+    .record-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #record-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #444;
+      background: #222;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, transform 0.1s;
+      outline: none;
+    }
+    #record-btn:hover { border-color: #e04040; transform: scale(1.04); }
+    #record-btn.recording { border-color: #e04040; background: #2a1010; }
+    #record-btn.recording .dot { background: #e04040; animation: pulse 1s ease-in-out infinite; }
+
+    .dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.2s;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.85); opacity: 0.7; }
+    }
+
+    #record-label {
+      font-size: 0.8rem;
+      color: #666;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #timer {
+      font-size: 1.8rem;
+      font-variant-numeric: tabular-nums;
+      color: #ccc;
+      letter-spacing: 0.05em;
+      min-height: 2.4rem;
+    }
+    #timer.warning { color: #e04040; }
+
+    /* ── Waveform ── */
+    canvas {
+      width: 100%;
+      height: 48px;
+      border-radius: 6px;
+      background: #111;
+    }
+
+    /* ── Fields ── */
+    .fields { display: flex; flex-direction: column; gap: 1rem; }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    input[type="number"], input[type="text"] {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e8e8e8;
+      font-size: 1rem;
+      padding: 0.6rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    input:focus { border-color: #555; }
+
+    /* ── Generate button ── */
+    #generate-btn {
+      background: #e04040;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 0.85rem;
+      text-transform: uppercase;
+      transition: background 0.15s, transform 0.1s;
+    }
+    #generate-btn:hover:not(:disabled) { background: #c43030; transform: translateY(-1px); }
+    #generate-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+
+    /* ── Status ── */
+    #status-box {
+      display: none;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: #aaa;
+      text-align: center;
+    }
+    #status-box.visible { display: block; }
+    #status-box.error { border-color: #5a1010; color: #e04040; }
+
+    /* ── Result ── */
+    #result-box {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    #result-box.visible { display: flex; }
+
+    audio { width: 100%; border-radius: 6px; }
+
+    #download-btn {
+      background: #1a3a1a;
+      border: 1px solid #2a5a2a;
+      border-radius: 8px;
+      color: #6fc06f;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 0.7rem;
+      text-transform: uppercase;
+      text-decoration: none;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    #download-btn:hover { background: #1e4a1e; }
+  </style>
+</head>
+<body>
+  <h1>Music Tool</h1>
+
+  <div class="card">
+    <!-- Record -->
+    <div class="record-section">
+      <button id="record-btn" aria-label="Start recording">
+        <div class="dot"></div>
+      </button>
+      <span id="record-label">Hold to record (max 15s)</span>
+      <span id="timer"></span>
+      <canvas id="waveform" width="400" height="48"></canvas>
+    </div>
+
+    <!-- Fields -->
+    <div class="fields">
+      <label>
+        BPM
+        <input type="number" id="bpm" min="40" max="300" placeholder="120" />
+      </label>
+      <label>
+        Style
+        <input type="text" id="style" placeholder='e.g. "trap drums", "john bonham rock kit"' />
+      </label>
+    </div>
+
+    <!-- Generate -->
+    <button id="generate-btn" disabled>Generate</button>
+
+    <!-- Status -->
+    <div id="status-box"></div>
+
+    <!-- Result -->
+    <div id="result-box">
+      <audio id="player" controls></audio>
+      <a id="download-btn" download="augmented.wav">Download WAV</a>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000';
+
+    // ── DOM refs ──────────────────────────────────────────────
+    const recordBtn   = document.getElementById('record-btn');
+    const recordLabel = document.getElementById('record-label');
+    const timerEl     = document.getElementById('timer');
+    const canvas      = document.getElementById('waveform');
+    const ctx2d       = canvas.getContext('2d');
+    const bpmInput    = document.getElementById('bpm');
+    const styleInput  = document.getElementById('style');
+    const generateBtn = document.getElementById('generate-btn');
+    const statusBox   = document.getElementById('status-box');
+    const resultBox   = document.getElementById('result-box');
+    const player      = document.getElementById('player');
+    const downloadBtn = document.getElementById('download-btn');
+
+    // ── State ─────────────────────────────────────────────────
+    let mediaRecorder = null;
+    let audioChunks   = [];
+    let recordedBlob  = null;
+    let timerInterval = null;
+    let animFrame     = null;
+    let analyser      = null;
+    let startTime     = 0;
+    const MAX_SECONDS = 15;
+
+    // ── Waveform draw ─────────────────────────────────────────
+    function drawWaveform() {
+      if (!analyser) return;
+      animFrame = requestAnimationFrame(drawWaveform);
+
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteTimeDomainData(buf);
+
+      const w = canvas.width, h = canvas.height;
+      ctx2d.clearRect(0, 0, w, h);
+      ctx2d.strokeStyle = '#e04040';
+      ctx2d.lineWidth = 1.5;
+      ctx2d.beginPath();
+
+      const sliceW = w / buf.length;
+      let x = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const v = buf[i] / 128;
+        const y = (v * h) / 2;
+        i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+        x += sliceW;
+      }
+      ctx2d.stroke();
+    }
+
+    function clearCanvas() {
+      const w = canvas.width, h = canvas.height;
+      ctx2d.clearRect(0, 0, w, h);
+      ctx2d.strokeStyle = '#333';
+      ctx2d.lineWidth = 1;
+      ctx2d.beginPath();
+      ctx2d.moveTo(0, h / 2);
+      ctx2d.lineTo(w, h / 2);
+      ctx2d.stroke();
+    }
+    clearCanvas();
+
+    // ── Recording ─────────────────────────────────────────────
+    async function startRecording() {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        showStatus('Microphone access denied. Please allow mic access and try again.', true);
+        return;
+      }
+
+      // Set up analyser for waveform
+      const audioCtx = new AudioContext();
+      const source   = audioCtx.createMediaStreamSource(stream);
+      analyser        = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+
+      audioChunks  = [];
+      recordedBlob = null;
+      generateBtn.disabled = true;
+
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(t => t.stop());
+        analyser = null;
+        cancelAnimationFrame(animFrame);
+        clearCanvas();
+        generateBtn.disabled = false;
+        recordLabel.textContent = 'Recording saved — ready to generate';
+      };
+
+      mediaRecorder.start();
+      startTime = Date.now();
+      recordBtn.classList.add('recording');
+      recordLabel.textContent = 'Recording…';
+      drawWaveform();
+
+      // Timer + auto-stop at 15 s
+      timerEl.textContent = '0:00';
+      timerEl.classList.remove('warning');
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = String(elapsed % 60).padStart(2, '0');
+        timerEl.textContent = `${m}:${s}`;
+        if (elapsed >= MAX_SECONDS - 3) timerEl.classList.add('warning');
+        if (elapsed >= MAX_SECONDS) stopRecording();
+      }, 250);
+    }
+
+    function stopRecording() {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+      clearInterval(timerInterval);
+      timerEl.textContent = '';
+      timerEl.classList.remove('warning');
+      recordBtn.classList.remove('recording');
+      mediaRecorder.stop();
+    }
+
+    // Click to toggle
+    recordBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    // ── Generate ──────────────────────────────────────────────
+    generateBtn.addEventListener('click', async () => {
+      if (!recordedBlob) {
+        showStatus('Record something first.', true);
+        return;
+      }
+      const bpm = parseInt(bpmInput.value, 10);
+      if (!bpm || bpm < 40 || bpm > 300) {
+        showStatus('Enter a BPM between 40 and 300.', true);
+        return;
+      }
+      const style = styleInput.value.trim();
+      if (!style) {
+        showStatus('Describe a style (e.g. "trap drums").', true);
+        return;
+      }
+
+      generateBtn.disabled = true;
+      hideResult();
+      showStatus('Uploading…');
+
+      const form = new FormData();
+      form.append('audio', recordedBlob, 'recording.webm');
+      form.append('bpm', bpm);
+      form.append('style_prompt', style);
+
+      let jobId;
+      try {
+        const res = await fetch(`${API}/generate`, { method: 'POST', body: form });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const data = await res.json();
+        jobId = data.job_id;
+      } catch (e) {
+        showStatus(`Upload failed: ${e.message}`, true);
+        generateBtn.disabled = false;
+        return;
+      }
+
+      // Poll /status every 2 seconds
+      showStatus(`Queued (job ${jobId.slice(0, 8)}…)`);
+      const pollId = setInterval(async () => {
+        try {
+          const res  = await fetch(`${API}/status/${jobId}`);
+          const data = await res.json();
+
+          if (data.status === 'complete') {
+            clearInterval(pollId);
+            showStatus('Done!');
+            const url = `${API}/download/${jobId}`;
+            player.src = url;
+            downloadBtn.href = url;
+            showResult();
+            generateBtn.disabled = false;
+          } else if (data.status === 'error') {
+            clearInterval(pollId);
+            showStatus(`Error: ${data.step || 'Unknown error'}`, true);
+            generateBtn.disabled = false;
+          } else {
+            showStatus(`${data.step || 'Processing…'}`);
+          }
+        } catch (e) {
+          clearInterval(pollId);
+          showStatus(`Polling failed: ${e.message}`, true);
+          generateBtn.disabled = false;
+        }
+      }, 2000);
+    });
+
+    // ── Helpers ───────────────────────────────────────────────
+    function showStatus(msg, isError = false) {
+      statusBox.textContent = msg;
+      statusBox.classList.toggle('error', isError);
+      statusBox.classList.add('visible');
+    }
+
+    function showResult() {
+      resultBox.classList.add('visible');
+    }
+
+    function hideResult() {
+      resultBox.classList.remove('visible');
+      player.src = '';
+      downloadBtn.href = '';
+    }
+  </script>
+</body>
+</html>
