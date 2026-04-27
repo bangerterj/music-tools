@@ -106,6 +106,13 @@ async def generate(
     with open(input_path, "wb") as f:
         f.write(await audio.read())
 
+    # Browsers send webm/opus — convert to WAV so soundfile/demucs can read it
+    if suffix.lower() != ".wav":
+        from pydub import AudioSegment
+        wav_path = job_dir / "input.wav"
+        AudioSegment.from_file(str(input_path)).export(str(wav_path), format="wav")
+        input_path = wav_path
+
     jobs[job_id] = {"status": "pending", "step": "Queued", "output_path": None}
 
     # Run pipeline without blocking the response
