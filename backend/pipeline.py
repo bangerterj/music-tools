@@ -179,13 +179,88 @@ def _estimate_key(midi_data) -> str:
     return best_key
 
 
-def generate_stems(style_prompt: str, bpm: int, musical_context: dict) -> Path:
-    """Call Replicate / MusicGen and return path to downloaded generated audio.
+def generate_stems(
+    style_prompt: str,
+    bpm: int,
+    musical_context: dict,
+    output_dir: Path,
+) -> Path:
+    """Call Replicate / MusicGen and return path to the downloaded WAV.
 
-    Polls until complete or times out at 120 seconds.
-    Raises RuntimeError on API error or timeout.
+    Builds an enriched prompt from style_prompt + detected tempo + key,
+    submits to meta/musicgen, polls until complete or 120 s timeout, then
+    downloads the result.  Raises RuntimeError on API error or timeout.
     """
-    raise NotImplementedError("Phase 5")
+    import os
+    import time
+
+    import httpx
+    import replicate
+
+    api_token = os.environ.get("REPLICATE_API_TOKEN")
+    if not api_token:
+        raise RuntimeError("REPLICATE_API_TOKEN is not set")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build an enriched prompt that gives MusicGen musical context
+    detected_tempo = musical_context.get("tempo", bpm)
+    key = musical_context.get("key", "")
+    prompt_parts = [style_prompt, f"{round(detected_tempo)} bpm"]
+    if key:
+        prompt_parts.append(key)
+    enriched_prompt = ", ".join(prompt_parts)
+
+    # Submit prediction
+    try:
+        prediction = replicate.predictions.create(
+            model="meta/musicgen",
+            input={
+                "prompt": enriched_prompt,
+                "duration": 15,
+                "model_version": "stereo-melody-large",
+                "output_format": "wav",
+                "normalization_strategy": "peak",
+            },
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Replicate submission failed: {exc}") from exc
+
+    # Poll until terminal state or timeout
+    timeout = 120
+    start = time.time()
+    while prediction.status not in ("succeeded", "failed", "canceled"):
+        if time.time() - start > timeout:
+            try:
+                prediction.cancel()
+            except Exception:
+                pass
+            raise RuntimeError(f"MusicGen timed out after {timeout}s")
+        time.sleep(3)
+        try:
+            prediction.reload()
+        except Exception as exc:
+            raise RuntimeError(f"Replicate polling failed: {exc}") from exc
+
+    if prediction.status != "succeeded":
+        raise RuntimeError(f"MusicGen failed: {prediction.error}")
+
+    # Resolve output URL — Replicate returns a str or list[str]
+    output = prediction.output
+    output_url = output[0] if isinstance(output, list) else output
+    if not output_url:
+        raise RuntimeError("MusicGen returned no output URL")
+
+    # Download the generated audio
+    generated_path = output_dir / "generated.wav"
+    try:
+        response = httpx.get(str(output_url), follow_redirects=True, timeout=60)
+        response.raise_for_status()
+        generated_path.write_bytes(response.content)
+    except Exception as exc:
+        raise RuntimeError(f"Could not download generated audio: {exc}") from exc
+
+    return generated_path
 
 
 def mix_audio(original_path: Path, generated_path: Path, output_path: Path) -> Path:

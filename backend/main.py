@@ -58,7 +58,7 @@ def run_pipeline(job_id: str, input_path: Path, bpm: int, style_prompt: str) -> 
 
         # ── Phase 5: MusicGen generation (stub) ───────────────────────────────
         update("Generating AI stems…")
-        generated_path = pipeline.generate_stems(style_prompt, bpm, musical_context)
+        generated_path = pipeline.generate_stems(style_prompt, bpm, musical_context, job_dir / "generated")
 
         # ── Phase 6: Mix down (stub) ───────────────────────────────────────────
         update("Mixing…")
