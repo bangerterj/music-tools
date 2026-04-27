@@ -83,10 +83,100 @@ def separate_stems(input_path: Path, output_dir: Path) -> dict[str, Path]:
 def extract_midi(input_path: Path, output_dir: Path) -> dict:
     """Run Basic Pitch on input_path and extract musical context.
 
-    Returns dict with keys: tempo (float), key (str), midi_path (Path).
+    Returns dict with keys: tempo (float), key (str), midi_path (Path),
+    note_count (int).
     Raises RuntimeError if basic-pitch fails.
     """
-    raise NotImplementedError("Phase 4")
+    import warnings
+
+    from basic_pitch import ICASSP_2022_MODEL_PATH
+    from basic_pitch.inference import predict
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            _model_output, midi_data, _note_events = predict(
+                str(input_path),
+                ICASSP_2022_MODEL_PATH,
+            )
+    except Exception as exc:
+        raise RuntimeError(f"Basic Pitch inference failed: {exc}") from exc
+
+    # Save the MIDI file for downstream use
+    midi_path = output_dir / "notes.mid"
+    try:
+        midi_data.write(str(midi_path))
+    except Exception as exc:
+        raise RuntimeError(f"Could not write MIDI file: {exc}") from exc
+
+    # Extract tempo — estimate_tempo() returns a single float (bpm)
+    try:
+        tempo = float(midi_data.estimate_tempo())
+    except Exception:
+        tempo = 120.0  # safe fallback
+
+    # Derive a key label from the chroma of the first instrument's notes
+    try:
+        key = _estimate_key(midi_data)
+    except Exception:
+        key = "C major"  # safe fallback
+
+    note_count = sum(len(inst.notes) for inst in midi_data.instruments)
+
+    return {
+        "tempo": round(tempo, 1),
+        "key": key,
+        "midi_path": midi_path,
+        "note_count": note_count,
+    }
+
+
+def _estimate_key(midi_data) -> str:
+    """Return a rough key label (e.g. 'A minor') from a PrettyMIDI object.
+
+    Uses a simple pitch-class histogram compared to Krumhansl-Schmuckler
+    key profiles — good enough to seed a MusicGen style prompt.
+    """
+    import numpy as np
+
+    # Build a pitch-class histogram across all instruments
+    histogram = np.zeros(12)
+    for instrument in midi_data.instruments:
+        if instrument.is_drum:
+            continue
+        for note in instrument.notes:
+            histogram[note.pitch % 12] += note.end - note.start  # weight by duration
+
+    if histogram.sum() == 0:
+        return "C major"
+
+    histogram = histogram / histogram.sum()
+
+    # Krumhansl-Schmuckler profiles (major then minor)
+    major_profile = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
+                               2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+    minor_profile = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
+                               2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+    note_names = ["C", "C#", "D", "D#", "E", "F",
+                  "F#", "G", "G#", "A", "A#", "B"]
+
+    best_score = -1.0
+    best_key = "C major"
+    for root in range(12):
+        rotated = np.roll(histogram, -root)
+        major_score = float(np.corrcoef(rotated, major_profile)[0, 1])
+        minor_score = float(np.corrcoef(rotated, minor_profile)[0, 1])
+        if major_score > best_score:
+            best_score = major_score
+            best_key = f"{note_names[root]} major"
+        if minor_score > best_score:
+            best_score = minor_score
+            best_key = f"{note_names[root]} minor"
+
+    return best_key
 
 
 def generate_stems(style_prompt: str, bpm: int, musical_context: dict) -> Path:
