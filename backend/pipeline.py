@@ -264,9 +264,54 @@ def generate_stems(
 
 
 def mix_audio(original_path: Path, generated_path: Path, output_path: Path) -> Path:
-    """Blend original recording with generated audio and write WAV to output_path.
+    """Blend the original recording on top of the AI-generated backing and write a WAV.
 
-    Returns output_path on success.
-    Raises RuntimeError if mixing fails.
+    Strategy:
+      - Generated audio is the bed (full volume)
+      - Original performance is laid on top at +3 dB relative to its own peak
+        so it sits clearly above the backing without being harsh
+      - Both tracks are peak-normalised before the blend so wildly different
+        levels don't surprise us
+      - Output is trimmed to the length of the shorter track
+
+    Returns output_path.  Raises RuntimeError on any failure.
     """
-    raise NotImplementedError("Phase 6")
+    from pydub import AudioSegment
+    from pydub.effects import normalize
+
+    try:
+        original = AudioSegment.from_file(str(original_path))
+        generated = AudioSegment.from_file(str(generated_path))
+    except Exception as exc:
+        raise RuntimeError(f"Could not load audio for mixing: {exc}") from exc
+
+    # Normalise both tracks to a consistent peak level
+    original = normalize(original)
+    generated = normalize(generated)
+
+    # Make both mono-or-stereo consistent — upgrade original to stereo if needed
+    if generated.channels == 2 and original.channels == 1:
+        original = original.set_channels(2)
+
+    # Match sample rates
+    if original.frame_rate != generated.frame_rate:
+        original = original.set_frame_rate(generated.frame_rate)
+
+    # Trim both to the shorter duration so the overlay is clean
+    min_len = min(len(original), len(generated))
+    original = original[:min_len]
+    generated = generated[:min_len]
+
+    # Boost original +3 dB so the performance sits on top of the bed
+    original = original + 3
+
+    # Overlay: generated is the base, original is placed on top from t=0
+    mixed = generated.overlay(original)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        mixed.export(str(output_path), format="wav")
+    except Exception as exc:
+        raise RuntimeError(f"Could not export mixed audio: {exc}") from exc
+
+    return output_path
