@@ -20,146 +20,217 @@
     }
 
     h1 {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 500;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: #888;
-      margin-bottom: 2.5rem;
+      color: #555;
+      margin-bottom: 2rem;
     }
 
     .card {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
+      background: #161616;
+      border: 1px solid #242424;
+      border-radius: 14px;
       padding: 2rem;
       width: 100%;
       max-width: 480px;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.75rem;
     }
 
-    /* ── Record section ── */
+    /* ── Record ─────────────────────────────────────────────── */
     .record-section {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1rem;
+      gap: 0.9rem;
     }
 
     #record-btn {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      border: 3px solid #444;
-      background: #222;
+      border: 3px solid #3a3a3a;
+      background: #1e1e1e;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.2s, transform 0.1s;
+      transition: border-color 0.2s, transform 0.1s, background 0.2s;
       outline: none;
+      flex-shrink: 0;
     }
     #record-btn:hover { border-color: #e04040; transform: scale(1.04); }
-    #record-btn.recording { border-color: #e04040; background: #2a1010; }
+    #record-btn.recording { border-color: #e04040; background: #250e0e; }
     #record-btn.recording .dot { background: #e04040; animation: pulse 1s ease-in-out infinite; }
+    #record-btn.has-recording { border-color: #3a3a3a; }
 
     .dot {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
-      background: #555;
+      background: #4a4a4a;
       transition: background 0.2s;
     }
 
     @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(0.85); opacity: 0.7; }
+      0%, 100% { transform: scale(1);    opacity: 1; }
+      50%       { transform: scale(0.82); opacity: 0.6; }
     }
 
     #record-label {
-      font-size: 0.8rem;
-      color: #666;
-      letter-spacing: 0.08em;
+      font-size: 0.72rem;
+      color: #555;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
     }
+    #record-label.saved { color: #5a9a5a; }
 
     #timer {
-      font-size: 1.8rem;
+      font-size: 1.9rem;
       font-variant-numeric: tabular-nums;
-      color: #ccc;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
+      color: #bbb;
       min-height: 2.4rem;
     }
     #timer.warning { color: #e04040; }
 
-    /* ── Waveform ── */
     canvas {
       width: 100%;
       height: 48px;
       border-radius: 6px;
-      background: #111;
+      background: #0e0e0e;
+      display: block;
     }
 
-    /* ── Fields ── */
+    /* ── Fields ─────────────────────────────────────────────── */
     .fields { display: flex; flex-direction: column; gap: 1rem; }
 
     label {
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: #666;
+      color: #555;
     }
 
-    input[type="number"], input[type="text"] {
-      background: #111;
-      border: 1px solid #2a2a2a;
+    input[type="number"],
+    input[type="text"] {
+      background: #0e0e0e;
+      border: 1px solid #252525;
       border-radius: 6px;
-      color: #e8e8e8;
-      font-size: 1rem;
+      color: #e0e0e0;
+      font-size: 0.95rem;
       padding: 0.6rem 0.75rem;
       outline: none;
       transition: border-color 0.15s;
       width: 100%;
     }
-    input:focus { border-color: #555; }
+    input:focus { border-color: #484848; }
 
-    /* ── Generate button ── */
+    .bpm-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .bpm-row input { flex: 1; }
+
+    #tap-btn {
+      background: #1e1e1e;
+      border: 1px solid #303030;
+      border-radius: 6px;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 0 1rem;
+      text-transform: uppercase;
+      transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.07s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #tap-btn:hover  { border-color: #555; color: #ccc; }
+    #tap-btn:active { transform: scale(0.95); background: #2a2a2a; }
+    #tap-btn.tapped { border-color: #e04040; color: #e04040; }
+
+    /* ── Generate ───────────────────────────────────────────── */
     #generate-btn {
-      background: #e04040;
+      background: #c03030;
       border: none;
       border-radius: 8px;
       color: #fff;
       cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      padding: 0.85rem;
-      text-transform: uppercase;
-      transition: background 0.15s, transform 0.1s;
-    }
-    #generate-btn:hover:not(:disabled) { background: #c43030; transform: translateY(-1px); }
-    #generate-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-
-    /* ── Status ── */
-    #status-box {
-      display: none;
-      background: #111;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      padding: 1rem;
       font-size: 0.85rem;
-      color: #aaa;
-      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      padding: 0.9rem;
+      text-transform: uppercase;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
     }
-    #status-box.visible { display: block; }
-    #status-box.error { border-color: #5a1010; color: #e04040; }
+    #generate-btn:hover:not(:disabled) { background: #a82828; transform: translateY(-1px); }
+    #generate-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
-    /* ── Result ── */
+    /* ── Progress steps ─────────────────────────────────────── */
+    #progress-box {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    #progress-box.visible { display: flex; }
+
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: #3a3a3a;
+      transition: color 0.3s;
+    }
+    .step-row.done    { color: #4a7a4a; }
+    .step-row.active  { color: #c8c8c8; }
+
+    .step-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid #2a2a2a;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .step-row.done  .step-icon { border-color: #4a7a4a; color: #4a7a4a; }
+    .step-row.active .step-icon {
+      border-color: #c03030;
+      background: #c03030;
+      animation: step-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes step-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.5; }
+    }
+
+    /* ── Error ──────────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: #180808;
+      border: 1px solid #4a1010;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-size: 0.82rem;
+      color: #d04040;
+      line-height: 1.5;
+    }
+    #error-box.visible { display: block; }
+
+    /* ── Result ─────────────────────────────────────────────── */
     #result-box {
       display: none;
       flex-direction: column;
@@ -167,36 +238,70 @@
     }
     #result-box.visible { display: flex; }
 
-    audio { width: 100%; border-radius: 6px; }
+    .toggle-row {
+      display: flex;
+      background: #0e0e0e;
+      border: 1px solid #252525;
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-radius: 5px;
+      color: #555;
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      padding: 0.45rem;
+      text-transform: uppercase;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn.active {
+      background: #222;
+      color: #e0e0e0;
+    }
+
+    audio {
+      width: 100%;
+      border-radius: 6px;
+      accent-color: #c03030;
+    }
 
     #download-btn {
-      background: #1a3a1a;
-      border: 1px solid #2a5a2a;
+      background: #0e1e0e;
+      border: 1px solid #1e3a1e;
       border-radius: 8px;
-      color: #6fc06f;
+      color: #5a9a5a;
       cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
       padding: 0.7rem;
       text-transform: uppercase;
       text-decoration: none;
       text-align: center;
       transition: background 0.15s;
+      display: block;
     }
-    #download-btn:hover { background: #1e4a1e; }
+    #download-btn:hover { background: #122012; }
   </style>
 </head>
 <body>
   <h1>Music Tool</h1>
 
   <div class="card">
+
     <!-- Record -->
     <div class="record-section">
       <button id="record-btn" aria-label="Start recording">
         <div class="dot"></div>
       </button>
-      <span id="record-label">Hold to record (max 15s)</span>
+      <span id="record-label">Click to record &nbsp;·&nbsp; max 15s</span>
       <span id="timer"></span>
       <canvas id="waveform" width="400" height="48"></canvas>
     </div>
@@ -205,25 +310,54 @@
     <div class="fields">
       <label>
         BPM
-        <input type="number" id="bpm" min="40" max="300" placeholder="120" />
+        <div class="bpm-row">
+          <input type="number" id="bpm" min="40" max="300" placeholder="120" />
+          <button id="tap-btn" title="Tap to detect tempo">Tap</button>
+        </div>
       </label>
       <label>
         Style
-        <input type="text" id="style" placeholder='e.g. "trap drums", "john bonham rock kit"' />
+        <input type="text" id="style"
+               placeholder='e.g. "lo-fi hip hop", "john bonham rock kit"' />
       </label>
     </div>
 
     <!-- Generate -->
     <button id="generate-btn" disabled>Generate</button>
 
-    <!-- Status -->
-    <div id="status-box"></div>
+    <!-- Pipeline progress -->
+    <div id="progress-box">
+      <div class="step-row" data-step="0">
+        <div class="step-icon"></div>
+        <span>Separating stems</span>
+      </div>
+      <div class="step-row" data-step="1">
+        <div class="step-icon"></div>
+        <span>Analysing pitch &amp; tempo</span>
+      </div>
+      <div class="step-row" data-step="2">
+        <div class="step-icon"></div>
+        <span>Generating AI stems</span>
+      </div>
+      <div class="step-row" data-step="3">
+        <div class="step-icon"></div>
+        <span>Mixing</span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box"></div>
 
     <!-- Result -->
     <div id="result-box">
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="btn-original">Original</button>
+        <button class="toggle-btn"        id="btn-generated">Generated</button>
+      </div>
       <audio id="player" controls></audio>
       <a id="download-btn" download="augmented.wav">Download WAV</a>
     </div>
+
   </div>
 
   <script>
@@ -232,28 +366,35 @@
     // ── DOM refs ──────────────────────────────────────────────
     const recordBtn   = document.getElementById('record-btn');
     const recordLabel = document.getElementById('record-label');
-    const timerEl     = document.getElementById('timer');
-    const canvas      = document.getElementById('waveform');
-    const ctx2d       = canvas.getContext('2d');
-    const bpmInput    = document.getElementById('bpm');
-    const styleInput  = document.getElementById('style');
+    const timerEl    = document.getElementById('timer');
+    const canvas     = document.getElementById('waveform');
+    const ctx2d      = canvas.getContext('2d');
+    const bpmInput   = document.getElementById('bpm');
+    const tapBtn     = document.getElementById('tap-btn');
+    const styleInput = document.getElementById('style');
     const generateBtn = document.getElementById('generate-btn');
-    const statusBox   = document.getElementById('status-box');
-    const resultBox   = document.getElementById('result-box');
-    const player      = document.getElementById('player');
-    const downloadBtn = document.getElementById('download-btn');
+    const progressBox = document.getElementById('progress-box');
+    const stepRows   = document.querySelectorAll('.step-row');
+    const errorBox   = document.getElementById('error-box');
+    const resultBox  = document.getElementById('result-box');
+    const player     = document.getElementById('player');
+    const btnOriginal  = document.getElementById('btn-original');
+    const btnGenerated = document.getElementById('btn-generated');
+    const downloadBtn  = document.getElementById('download-btn');
 
     // ── State ─────────────────────────────────────────────────
     let mediaRecorder = null;
     let audioChunks   = [];
     let recordedBlob  = null;
+    let originalUrl   = null;   // object URL for before/after toggle
+    let generatedUrl  = null;
     let timerInterval = null;
     let animFrame     = null;
     let analyser      = null;
     let startTime     = 0;
     const MAX_SECONDS = 15;
 
-    // ── Waveform draw ─────────────────────────────────────────
+    // ── Waveform ──────────────────────────────────────────────
     function drawWaveform() {
       if (!analyser) return;
       animFrame = requestAnimationFrame(drawWaveform);
@@ -264,14 +405,13 @@
       const w = canvas.width, h = canvas.height;
       ctx2d.clearRect(0, 0, w, h);
       ctx2d.strokeStyle = '#e04040';
-      ctx2d.lineWidth = 1.5;
+      ctx2d.lineWidth   = 1.5;
       ctx2d.beginPath();
 
       const sliceW = w / buf.length;
       let x = 0;
       for (let i = 0; i < buf.length; i++) {
-        const v = buf[i] / 128;
-        const y = (v * h) / 2;
+        const y = (buf[i] / 128) * (h / 2);
         i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
         x += sliceW;
       }
@@ -279,13 +419,12 @@
     }
 
     function clearCanvas() {
-      const w = canvas.width, h = canvas.height;
-      ctx2d.clearRect(0, 0, w, h);
-      ctx2d.strokeStyle = '#333';
-      ctx2d.lineWidth = 1;
+      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+      ctx2d.strokeStyle = '#222';
+      ctx2d.lineWidth   = 1;
       ctx2d.beginPath();
-      ctx2d.moveTo(0, h / 2);
-      ctx2d.lineTo(w, h / 2);
+      ctx2d.moveTo(0, canvas.height / 2);
+      ctx2d.lineTo(canvas.width, canvas.height / 2);
       ctx2d.stroke();
     }
     clearCanvas();
@@ -295,12 +434,11 @@
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) {
-        showStatus('Microphone access denied. Please allow mic access and try again.', true);
+      } catch {
+        showError('Microphone access denied — allow mic access and try again.');
         return;
       }
 
-      // Set up analyser for waveform
       const audioCtx = new AudioContext();
       const source   = audioCtx.createMediaStreamSource(stream);
       analyser        = audioCtx.createAnalyser();
@@ -310,26 +448,36 @@
       audioChunks  = [];
       recordedBlob = null;
       generateBtn.disabled = true;
+      hideError();
+      hideResult();
 
       mediaRecorder = new MediaRecorder(stream);
       mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
       mediaRecorder.onstop = () => {
         recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+        // Revoke previous object URL to avoid memory leaks
+        if (originalUrl) URL.revokeObjectURL(originalUrl);
+        originalUrl = URL.createObjectURL(recordedBlob);
+
         stream.getTracks().forEach(t => t.stop());
         analyser = null;
         cancelAnimationFrame(animFrame);
         clearCanvas();
         generateBtn.disabled = false;
+        recordBtn.classList.add('has-recording');
         recordLabel.textContent = 'Recording saved — ready to generate';
+        recordLabel.classList.add('saved');
       };
 
       mediaRecorder.start();
       startTime = Date.now();
       recordBtn.classList.add('recording');
+      recordBtn.classList.remove('has-recording');
       recordLabel.textContent = 'Recording…';
+      recordLabel.classList.remove('saved');
       drawWaveform();
 
-      // Timer + auto-stop at 15 s
       timerEl.textContent = '0:00';
       timerEl.classList.remove('warning');
       timerInterval = setInterval(() => {
@@ -338,7 +486,7 @@
         const s = String(elapsed % 60).padStart(2, '0');
         timerEl.textContent = `${m}:${s}`;
         if (elapsed >= MAX_SECONDS - 3) timerEl.classList.add('warning');
-        if (elapsed >= MAX_SECONDS) stopRecording();
+        if (elapsed >= MAX_SECONDS)     stopRecording();
       }, 250);
     }
 
@@ -351,7 +499,6 @@
       mediaRecorder.stop();
     }
 
-    // Click to toggle
     recordBtn.addEventListener('click', () => {
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         stopRecording();
@@ -360,26 +507,100 @@
       }
     });
 
+    // ── Tap tempo ─────────────────────────────────────────────
+    const TAP_WINDOW  = 3000;  // reset if gap > 3 s
+    const MAX_TAPS    = 8;
+    let tapTimes = [];
+    let tapFlashTimer = null;
+
+    tapBtn.addEventListener('click', () => {
+      const now = Date.now();
+      if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > TAP_WINDOW) {
+        tapTimes = [];
+      }
+      tapTimes.push(now);
+
+      if (tapTimes.length > MAX_TAPS) tapTimes.shift();
+
+      if (tapTimes.length >= 2) {
+        const intervals = [];
+        for (let i = 1; i < tapTimes.length; i++) {
+          intervals.push(tapTimes[i] - tapTimes[i - 1]);
+        }
+        const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        bpmInput.value = Math.round(60000 / avg);
+      }
+
+      // Flash the button red briefly
+      tapBtn.classList.add('tapped');
+      clearTimeout(tapFlashTimer);
+      tapFlashTimer = setTimeout(() => tapBtn.classList.remove('tapped'), 150);
+    });
+
+    // ── Progress steps ────────────────────────────────────────
+    // Maps a fragment of the backend step string to a step index (0-based)
+    const STEP_MAP = [
+      'Separating',
+      'Analysing',
+      'Generating',
+      'Mixing',
+    ];
+
+    function setStep(stepText) {
+      const idx = STEP_MAP.findIndex(s => stepText.startsWith(s));
+      stepRows.forEach((row, i) => {
+        row.classList.remove('done', 'active');
+        const icon = row.querySelector('.step-icon');
+        if (i < idx) {
+          row.classList.add('done');
+          icon.textContent = '✓';
+        } else if (i === idx) {
+          row.classList.add('active');
+          icon.textContent = '';
+        } else {
+          icon.textContent = '';
+        }
+      });
+    }
+
+    function markAllDone() {
+      stepRows.forEach(row => {
+        row.classList.remove('active');
+        row.classList.add('done');
+        row.querySelector('.step-icon').textContent = '✓';
+      });
+    }
+
+    function resetSteps() {
+      stepRows.forEach(row => {
+        row.classList.remove('done', 'active');
+        row.querySelector('.step-icon').textContent = '';
+      });
+    }
+
     // ── Generate ──────────────────────────────────────────────
     generateBtn.addEventListener('click', async () => {
       if (!recordedBlob) {
-        showStatus('Record something first.', true);
+        showError('Record something first.');
         return;
       }
       const bpm = parseInt(bpmInput.value, 10);
       if (!bpm || bpm < 40 || bpm > 300) {
-        showStatus('Enter a BPM between 40 and 300.', true);
+        showError('Enter a BPM between 40 and 300.');
         return;
       }
       const style = styleInput.value.trim();
       if (!style) {
-        showStatus('Describe a style (e.g. "trap drums").', true);
+        showError('Describe a style — e.g. "lo-fi hip hop" or "jazz trio".');
         return;
       }
 
       generateBtn.disabled = true;
+      hideError();
       hideResult();
-      showStatus('Uploading…');
+      resetSteps();
+      progressBox.classList.add('visible');
+      setStep('Separating');
 
       const form = new FormData();
       form.append('audio', recordedBlob, 'recording.webm');
@@ -390,16 +611,14 @@
       try {
         const res = await fetch(`${API}/generate`, { method: 'POST', body: form });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
-        const data = await res.json();
-        jobId = data.job_id;
+        jobId = (await res.json()).job_id;
       } catch (e) {
-        showStatus(`Upload failed: ${e.message}`, true);
+        progressBox.classList.remove('visible');
+        showError(`Upload failed: ${e.message}`);
         generateBtn.disabled = false;
         return;
       }
 
-      // Poll /status every 2 seconds
-      showStatus(`Queued (job ${jobId.slice(0, 8)}…)`);
       const pollId = setInterval(async () => {
         try {
           const res  = await fetch(`${API}/status/${jobId}`);
@@ -407,38 +626,60 @@
 
           if (data.status === 'complete') {
             clearInterval(pollId);
-            showStatus('Done!');
-            const url = `${API}/download/${jobId}`;
-            player.src = url;
-            downloadBtn.href = url;
-            showResult();
+            markAllDone();
+            setTimeout(() => progressBox.classList.remove('visible'), 800);
+
+            generatedUrl = `${API}/download/${jobId}`;
+            player.src   = generatedUrl;
+            downloadBtn.href = generatedUrl;
+            setToggle('generated');
             generateBtn.disabled = false;
+            showResult();
+
           } else if (data.status === 'error') {
             clearInterval(pollId);
-            showStatus(`Error: ${data.step || 'Unknown error'}`, true);
+            progressBox.classList.remove('visible');
+            resetSteps();
+            showError(data.step || 'Something went wrong — check the server logs.');
             generateBtn.disabled = false;
-          } else {
-            showStatus(`${data.step || 'Processing…'}`);
+
+          } else if (data.step) {
+            setStep(data.step);
           }
         } catch (e) {
           clearInterval(pollId);
-          showStatus(`Polling failed: ${e.message}`, true);
+          progressBox.classList.remove('visible');
+          showError(`Lost connection to server: ${e.message}`);
           generateBtn.disabled = false;
         }
       }, 2000);
     });
 
+    // ── Before / after toggle ────────────────────────────────
+    function setToggle(which) {
+      if (which === 'original') {
+        btnOriginal.classList.add('active');
+        btnGenerated.classList.remove('active');
+        player.src = originalUrl || '';
+      } else {
+        btnGenerated.classList.add('active');
+        btnOriginal.classList.remove('active');
+        player.src = generatedUrl || '';
+      }
+      player.play().catch(() => {});
+    }
+
+    btnOriginal.addEventListener('click',  () => setToggle('original'));
+    btnGenerated.addEventListener('click', () => setToggle('generated'));
+
     // ── Helpers ───────────────────────────────────────────────
-    function showStatus(msg, isError = false) {
-      statusBox.textContent = msg;
-      statusBox.classList.toggle('error', isError);
-      statusBox.classList.add('visible');
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.add('visible');
     }
+    function hideError() { errorBox.classList.remove('visible'); }
 
-    function showResult() {
-      resultBox.classList.add('visible');
-    }
-
+    function showResult() { resultBox.classList.add('visible'); }
     function hideResult() {
       resultBox.classList.remove('visible');
       player.src = '';
