@@ -185,25 +185,18 @@ def generate_stems(
     musical_context: dict,
     output_dir: Path,
 ) -> Path:
-    """Call Replicate / MusicGen and return path to the downloaded WAV.
+    """Run MusicGen locally via HuggingFace transformers and return path to WAV.
 
-    Builds an enriched prompt from style_prompt + detected tempo + key,
-    submits to meta/musicgen, polls until complete or 120 s timeout, then
-    downloads the result.  Raises RuntimeError on API error or timeout.
+    Uses facebook/musicgen-stereo-small — fast enough on CPU (~3-5 min for 15s).
+    Model weights (~1 GB) are downloaded once and cached in ~/.cache/huggingface.
+    Raises RuntimeError on any failure.
     """
-    import os
-    import time
-
-    import httpx
-    import replicate
-
-    api_token = os.environ.get("REPLICATE_API_TOKEN")
-    if not api_token:
-        raise RuntimeError("REPLICATE_API_TOKEN is not set")
+    import torch
+    from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build an enriched prompt that gives MusicGen musical context
+    # Build an enriched prompt from style + detected tempo + key
     detected_tempo = musical_context.get("tempo", bpm)
     key = musical_context.get("key", "")
     prompt_parts = [style_prompt, f"{round(detected_tempo)} bpm"]
@@ -211,54 +204,39 @@ def generate_stems(
         prompt_parts.append(key)
     enriched_prompt = ", ".join(prompt_parts)
 
-    # Submit prediction
+    # stereo-small is the best CPU trade-off: good quality, ~3-5 min for 15s.
+    # Swap to "facebook/musicgen-stereo-medium" for better quality (much slower).
+    MODEL_ID = "facebook/musicgen-stereo-small"
+
     try:
-        prediction = replicate.predictions.create(
-            model="meta/musicgen",
-            input={
-                "prompt": enriched_prompt,
-                "duration": 30,
-                "model_version": "stereo-melody-large",
-                "output_format": "wav",
-                "normalization_strategy": "peak",
-            },
-        )
+        processor = AutoProcessor.from_pretrained(MODEL_ID)
+        model = MusicgenForConditionalGeneration.from_pretrained(MODEL_ID)
+        model.eval()
     except Exception as exc:
-        raise RuntimeError(f"Replicate submission failed: {exc}") from exc
+        raise RuntimeError(f"Could not load MusicGen model: {exc}") from exc
 
-    # Poll until terminal state or timeout
-    timeout = 120
-    start = time.time()
-    while prediction.status not in ("succeeded", "failed", "canceled"):
-        if time.time() - start > timeout:
-            try:
-                prediction.cancel()
-            except Exception:
-                pass
-            raise RuntimeError(f"MusicGen timed out after {timeout}s")
-        time.sleep(3)
-        try:
-            prediction.reload()
-        except Exception as exc:
-            raise RuntimeError(f"Replicate polling failed: {exc}") from exc
+    inputs = processor(text=[enriched_prompt], padding=True, return_tensors="pt")
 
-    if prediction.status != "succeeded":
-        raise RuntimeError(f"MusicGen failed: {prediction.error}")
+    # 256 tokens ≈ 5s, 1500 ≈ 30s at MusicGen's 32kHz / 50 token-per-second rate.
+    # Match roughly to the recording length (default 15s → 750 tokens).
+    max_new_tokens = 750
 
-    # Resolve output URL — Replicate returns a str or list[str]
-    output = prediction.output
-    output_url = output[0] if isinstance(output, list) else output
-    if not output_url:
-        raise RuntimeError("MusicGen returned no output URL")
+    try:
+        with torch.no_grad():
+            audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens)
+    except Exception as exc:
+        raise RuntimeError(f"MusicGen inference failed: {exc}") from exc
 
-    # Download the generated audio
+    # audio_values: (batch, channels, samples) at model.config.audio_encoder.sampling_rate
+    sample_rate = model.config.audio_encoder.sampling_rate
+    audio_np = audio_values[0].cpu().numpy().astype("float32")  # (channels, samples)
+    audio_np = audio_np.T                                       # (samples, channels) for soundfile
+
     generated_path = output_dir / "generated.wav"
     try:
-        response = httpx.get(str(output_url), follow_redirects=True, timeout=60)
-        response.raise_for_status()
-        generated_path.write_bytes(response.content)
+        sf.write(str(generated_path), audio_np, samplerate=sample_rate)
     except Exception as exc:
-        raise RuntimeError(f"Could not download generated audio: {exc}") from exc
+        raise RuntimeError(f"Could not write generated audio: {exc}") from exc
 
     return generated_path
 
