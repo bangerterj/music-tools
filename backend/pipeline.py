@@ -6,6 +6,14 @@ import numpy as np
 import soundfile as sf
 import torch
 
+# Use GPU if available, fall back to CPU gracefully
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Module-level cache so the model is loaded once per server process,
+# not on every generation request.
+_musicgen_processor = None
+_musicgen_model = None
+
 
 def separate_stems(input_path: Path, output_dir: Path) -> dict[str, Path]:
     """Run Demucs on input_path and return paths to the four separated stems.
@@ -56,7 +64,7 @@ def separate_stems(input_path: Path, output_dir: Path) -> dict[str, Path]:
 
     try:
         with torch.no_grad():
-            sources = apply_model(model, wav, device="cpu", progress=False)
+            sources = apply_model(model, wav, device=DEVICE, progress=False)
     except Exception as exc:
         raise RuntimeError(f"Demucs inference failed: {exc}") from exc
 
@@ -204,18 +212,25 @@ def generate_stems(
         prompt_parts.append(key)
     enriched_prompt = ", ".join(prompt_parts)
 
-    # stereo-small is the best CPU trade-off: good quality, ~3-5 min for 15s.
-    # Swap to "facebook/musicgen-stereo-medium" for better quality (much slower).
-    MODEL_ID = "facebook/musicgen-stereo-small"
+    # stereo-medium gives noticeably better results and fits in 10 GB VRAM easily.
+    # Fall back to stereo-small if VRAM is tight.
+    MODEL_ID = "facebook/musicgen-stereo-medium"
 
-    try:
-        processor = AutoProcessor.from_pretrained(MODEL_ID)
-        model = MusicgenForConditionalGeneration.from_pretrained(MODEL_ID)
-        model.eval()
-    except Exception as exc:
-        raise RuntimeError(f"Could not load MusicGen model: {exc}") from exc
+    global _musicgen_processor, _musicgen_model
+    if _musicgen_model is None:
+        try:
+            _musicgen_processor = AutoProcessor.from_pretrained(MODEL_ID)
+            _musicgen_model = MusicgenForConditionalGeneration.from_pretrained(MODEL_ID)
+            _musicgen_model.to(DEVICE)
+            _musicgen_model.eval()
+        except Exception as exc:
+            raise RuntimeError(f"Could not load MusicGen model: {exc}") from exc
+
+    processor = _musicgen_processor
+    model = _musicgen_model
 
     inputs = processor(text=[enriched_prompt], padding=True, return_tensors="pt")
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
     # 256 tokens ≈ 5s, 1500 ≈ 30s at MusicGen's 32kHz / 50 token-per-second rate.
     # Match roughly to the recording length (default 15s → 750 tokens).
