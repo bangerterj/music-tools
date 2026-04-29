@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio</title>
+<style>
+:root {
+  --bg-primary: #111111;
+  --bg-surface: #1a1a1a;
+  --bg-elevated: #222222;
+  --bg-header: #252525;
+  --border: #333333;
+  --text-primary: #e8e8e8;
+  --text-secondary: #888888;
+  --accent: #4CAF50;
+  --accent-hover: #66BB6A;
+  --danger: #ef5350;
+  --record-red: #f44336;
+  --playhead: #ffffff;
+  --grid-line: #2a2a2a;
+  --grid-line-bar: #383838;
+  --track-height: 80px;
+  --header-width: 180px;
+  --mixer-height: 160px;
+  --toolbar-height: 48px;
+  --ruler-height: 32px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App shell ─────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  user-select: none;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+#toolbar {
+  height: var(--toolbar-height);
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+
+.tool-btn {
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+.tool-btn:hover { border-color: #555; color: var(--text-primary); }
+.tool-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+.transport-btn {
+  width: 32px;
+  height: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+.transport-btn:hover { border-color: #555; }
+.transport-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+#btn-record { color: var(--record-red); }
+#btn-record.recording { background: var(--record-red); color: white; animation: pulse 1s infinite; border-color: var(--record-red); }
+
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
+
+#bpm-display {
+  width: 52px;
+  height: 28px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  text-align: center;
+  font-size: 13px;
+  font-family: monospace;
+  border-radius: 3px;
+  outline: none;
+}
+#bpm-display:focus { border-color: var(--accent); }
+
+#time-display {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--accent);
+  min-width: 76px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+#project-name-display {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 3px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#project-name-display:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+/* ── Main area ─────────────────────────────────────────────── */
+#main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Track headers ─────────────────────────────────────────── */
+#track-headers {
+  width: var(--header-width);
+  flex-shrink: 0;
+  background: var(--bg-header);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#ruler-spacer {
+  height: var(--ruler-height);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+}
+
+.snap-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.snap-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+#track-header-list {
+  flex: 1;
+  overflow: hidden;
+}
+
+.track-header {
+  height: var(--track-height);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 12px;
+  gap: 7px;
+  cursor: pointer;
+  position: relative;
+  background: var(--bg-header);
+  transition: background 0.1s;
+}
+.track-header:hover { background: var(--bg-elevated); }
+.track-header.selected { background: #1e2e1e; }
+
+.track-color-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 0 2px 2px 0;
+}
+
+.track-info { flex: 1; overflow: hidden; }
+
+.track-name {
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.track-type-tag {
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.track-header-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.th-btn {
+  font-size: 9px;
+  width: 18px;
+  height: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.th-btn.mute-active { background: #e65100; color: #fff; border-color: #e65100; }
+.th-btn.solo-active { background: #f9a825; color: #000; border-color: #f9a825; }
+
+#add-track-btn {
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+#add-track-btn:hover { color: var(--accent); }
+#add-track-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Arrangement ───────────────────────────────────────────── */
+#arrangement-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+#timeline-ruler {
+  height: var(--ruler-height);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+#timeline-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+}
+
+#arrangement-scroll {
+  flex: 1;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  position: relative;
+  cursor: crosshair;
+}
+#arrangement-scroll.tool-select { cursor: default; }
+#arrangement-scroll.tool-cut { cursor: crosshair; }
+#arrangement-scroll.tool-draw { cursor: cell; }
+
+#arrangement-inner {
+  position: relative;
+  min-height: 100%;
+}
+
+#grid-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#clips-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+#playhead {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--playhead);
+  pointer-events: none;
+  z-index: 50;
+  box-shadow: 0 0 4px rgba(255,255,255,0.4);
+}
+
+#loop-region {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(76,175,80,0.07);
+  border-left: 1px solid rgba(76,175,80,0.5);
+  border-right: 1px solid rgba(76,175,80,0.5);
+  pointer-events: none;
+  z-index: 3;
+  display: none;
+}
+
+.track-lane {
+  height: var(--track-height);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.track-lane:nth-child(even) { background: rgba(255,255,255,0.012); }
+
+/* ── Clips ─────────────────────────────────────────────────── */
+.clip {
+  position: absolute;
+  top: 3px;
+  height: calc(var(--track-height) - 6px);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  min-width: 16px;
+  z-index: 10;
+  transition: box-shadow 0.08s;
+}
+.clip:hover { box-shadow: 0 0 0 1px rgba(255,255,255,0.3); }
+.clip.selected { box-shadow: 0 0 0 1.5px white !important; }
+
+.clip-top-bar {
+  height: 4px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.clip-body {
+  height: calc(100% - 4px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(0,0,0,0.45);
+}
+
+.clip-label {
+  font-size: 9px;
+  padding: 2px 5px;
+  color: rgba(255,255,255,0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.clip-waveform-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.clip-resize-handle {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 20;
+  background: transparent;
+}
+.clip-resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 2px; top: 20%; bottom: 20%;
+  width: 2px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 1px;
+}
+
+/* ── Mixer ─────────────────────────────────────────────────── */
+#mixer-panel {
+  height: var(--mixer-height);
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#mixer-tracks-list {
+  display: flex;
+  align-items: stretch;
+}
+
+.mixer-track {
+  width: 72px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px 4px;
+  gap: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.mixer-track:hover { background: rgba(255,255,255,0.02); }
+.mixer-track.selected { background: rgba(76,175,80,0.04); }
+
+.mixer-color-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mixer-track-label {
+  font-size: 9px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  color: var(--text-secondary);
+}
+
+.fader-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input[type="range"].fader {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 22px;
+  height: 70px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.pan-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+input[type="range"].pan {
+  flex: 1;
+  height: 3px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.pan-label {
+  font-size: 8px;
+  color: var(--text-secondary);
+  width: 12px;
+  text-align: center;
+}
+
+.mixer-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.mx-btn {
+  font-size: 8px;
+  padding: 1px 4px;
+  height: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+}
+.mx-btn:hover { border-color: #555; }
+.mx-btn.mute-on { background: #e65100; color: #fff; border-color: #e65100; }
+.mx-btn.solo-on { background: #f9a825; color: #000; border-color: #f9a825; }
+.mx-btn.fx-open { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.mixer-master {
+  width: 88px;
+  flex-shrink: 0;
+  border-left: 2px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 6px 4px;
+  gap: 4px;
+}
+
+.master-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+
+.btn-ai-master {
+  width: 100%;
+  padding: 3px 0;
+  background: rgba(76,175,80,0.12);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-align: center;
+}
+.btn-ai-master:hover { background: rgba(76,175,80,0.22); }
+
+/* ── FX Panel ──────────────────────────────────────────────── */
+#fx-panel {
+  position: fixed;
+  right: -340px;
+  top: var(--toolbar-height);
+  bottom: var(--mixer-height);
+  width: 320px;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  transition: right 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+#fx-panel.open { right: 0; }
+
+#fx-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#fx-track-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fx-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+#fx-sections {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-section {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fx-section-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  gap: 8px;
+}
+.fx-section-header:hover { background: #2a2a2a; }
+
+.fx-enabled-toggle {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fx-enabled-toggle.on { background: var(--accent); border-color: var(--accent); }
+
+.fx-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.fx-section-body {
+  padding: 10px;
+  display: none;
+  flex-direction: column;
+  gap: 7px;
+}
+.fx-section.expanded .fx-section-body { display: flex; }
+
+.fx-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fx-row-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  width: 58px;
+  flex-shrink: 0;
+}
+
+.fx-row input[type="range"] {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.fx-row-val {
+  font-size: 9px;
+  color: var(--text-primary);
+  width: 34px;
+  text-align: right;
+  font-family: monospace;
+}
+
+#fx-panel-footer {
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Modals ────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 22px 24px 20px;
+  width: 420px;
+  max-width: 95vw;
+}
+
+.modal h2 { font-size: 15px; margin-bottom: 16px; }
+
+.modal-field { margin-bottom: 12px; }
+
+.modal-field label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 7px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+.modal-field input:focus,
+.modal-field select:focus,
+.modal-field textarea:focus { border-color: var(--accent); }
+
+.modal-field textarea { resize: vertical; min-height: 60px; }
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.check-label input { cursor: pointer; accent-color: var(--accent); }
+
+.modal-row { display: flex; gap: 12px; }
+.modal-row .modal-field { flex: 1; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.btn-primary {
+  padding: 7px 20px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+.btn-secondary {
+  padding: 7px 16px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-secondary:hover { border-color: #555; }
+
+/* ── Progress overlay ──────────────────────────────────────── */
+#progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+#progress-overlay.open { display: flex; }
+
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#progress-step { font-size: 14px; max-width: 320px; text-align: center; }
+
+.progress-bar-wrap {
+  width: 280px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+#progress-eta { font-size: 11px; color: var(--text-secondary); }
+
+/* ── Context menu ──────────────────────────────────────────── */
+#context-menu {
+  position: fixed;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  z-index: 3000;
+  min-width: 148px;
+  display: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+#context-menu.open { display: block; }
+
+.ctx-item {
+  padding: 8px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctx-item:hover { background: var(--bg-surface); }
+.ctx-item.danger { color: var(--danger); }
+.ctx-item.divider { border-top: 1px solid var(--border); }
+
+/* ── Record modal ──────────────────────────────────────────── */
+#modal-record .modal {
+  text-align: center;
+  width: 440px;
+}
+
+#record-timer {
+  font-size: 44px;
+  font-family: monospace;
+  color: var(--record-red);
+  margin: 12px 0;
+  letter-spacing: 0.05em;
+}
+
+#record-canvas {
+  width: 100%;
+  height: 56px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ── Scrollbars ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+
+/* ── Zoom label ────────────────────────────────────────────── */
+#zoom-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: monospace;
+  min-width: 40px;
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+[title] { position: relative; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ TOOLBAR ═══════════════════════════════════════════ -->
+  <div id="toolbar">
+
+    <!-- Tools -->
+    <button class="tool-btn active" id="tool-select" title="Select tool (V)">▶</button>
+    <button class="tool-btn" id="tool-cut" title="Cut tool (C)">✂</button>
+    <button class="tool-btn" id="tool-draw" title="Draw / automation (B)">✏</button>
+
+    <div class="sep"></div>
+
+    <!-- Transport -->
+    <button class="transport-btn" id="btn-record" title="Record (R)">●</button>
+    <button class="transport-btn" id="btn-play" title="Play / Pause (Space)">▶</button>
+    <button class="transport-btn" id="btn-stop" title="Stop &amp; return (Space)">■</button>
+    <button class="transport-btn" id="btn-return" title="Return to start (Enter)">⏮</button>
+    <button class="transport-btn" id="btn-loop" title="Toggle loop region (L)">🔁</button>
+
+    <div class="sep"></div>
+
+    <!-- BPM + Time -->
+    <span style="font-size:10px;color:var(--text-secondary)">BPM</span>
+    <input id="bpm-display" type="number" value="120" min="40" max="240" title="Tempo">
+    <div id="time-display">0:00.000</div>
+
+    <div class="sep"></div>
+
+    <!-- Actions -->
+    <button class="tool-btn" id="btn-generate" title="Generate AI backing tracks">✦ Generate</button>
+    <button class="tool-btn" id="btn-import" title="Import audio file">↑ Import</button>
+    <input type="file" id="import-file-input" accept="audio/*" style="display:none">
+
+    <!-- Zoom -->
+    <div class="sep"></div>
+    <button class="tool-btn" id="btn-zoom-out" title="Zoom out (-)">−</button>
+    <span id="zoom-label">100%</span>
+    <button class="tool-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
+
+    <!-- Snap -->
+    <button class="snap-btn active" id="btn-snap" title="Toggle snap to grid">⊞ Snap</button>
+
+    <!-- Right side -->
+    <span id="project-name-display" title="Click to rename">Untitled Project</span>
+    <button class="tool-btn" id="btn-export">⬇ Export</button>
+    <button class="tool-btn" id="btn-new-project">New</button>
+
+  </div>
+
+  <!-- ═══ MAIN AREA ═════════════════════════════════════════ -->
+  <div id="main-area">
+
+    <!-- Track headers sidebar -->
+    <div id="track-headers">
+      <div id="ruler-spacer">
+        <span style="font-size:9px;color:var(--text-secondary);flex:1">TRACKS</span>
+      </div>
+      <div id="track-header-list"></div>
+      <button id="add-track-btn" title="Add empty track (max 8)">+ Add Track</button>
+    </div>
+
+    <!-- Arrangement -->
+    <div id="arrangement-container">
+      <div id="timeline-ruler">
+        <canvas id="timeline-canvas"></canvas>
+      </div>
+      <div id="arrangement-scroll" class="tool-select">
+        <div id="arrangement-inner">
+          <div id="grid-layer"></div>
+          <div id="track-lanes-container"></div>
+          <div id="playhead"></div>
+          <div id="loop-region"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ MIXER ═════════════════════════════════════════════ -->
+  <div id="mixer-panel">
+    <div id="mixer-tracks-list"></div>
+
+    <!-- Master channel -->
+    <div class="mixer-master">
+      <div class="master-label">MASTER</div>
+      <div class="fader-wrap">
+        <input type="range" class="fader" id="master-fader" min="0" max="100" value="85" title="Master volume">
+      </div>
+      <button class="btn-ai-master" id="btn-ai-mastering">✦ Master</button>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ═══ FX PANEL ════════════════════════════════════════════ -->
+<div id="fx-panel">
+  <div id="fx-panel-header">
+    <div id="fx-track-name">Track FX</div>
+    <button class="fx-close-btn" id="fx-close-btn">✕</button>
+  </div>
+  <div id="fx-sections"></div>
+  <div id="fx-panel-footer">
+    <button class="btn-primary" id="fx-apply-btn" style="flex:1">Apply to Track</button>
+    <button class="btn-secondary" id="fx-close-btn2">Close</button>
+  </div>
+</div>
+
+<!-- ═══ CONTEXT MENU ════════════════════════════════════════ -->
+<div id="context-menu">
+  <div class="ctx-item" data-action="split">✂ Split at cursor</div>
+  <div class="ctx-item" data-action="duplicate">⧉ Duplicate</div>
+  <div class="ctx-item" data-action="rename">✎ Rename</div>
+  <div class="ctx-item" data-action="reverse">⇄ Reverse</div>
+  <div class="ctx-item divider danger" data-action="delete">✕ Delete</div>
+</div>
+
+<!-- ═══ MODAL: Generate ══════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-generate">
+  <div class="modal">
+    <h2>✦ Generate Backing Tracks</h2>
+    <div class="modal-field">
+      <label>Style Description</label>
+      <textarea id="gen-style" rows="3" placeholder="e.g. warm jazz trio with upright bass, brushed drums, and Rhodes…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Tracks to Generate</label>
+      <div class="checkbox-group">
+        <label class="check-label"><input type="checkbox" name="gen-track" value="drums" checked> Drums</label>
+        <label class="check-label"><input type="checkbox" name="gen-track" value="bass" checked> Bass</label>
+        <label class="check-label"><input type="checkbox" name="gen-track" value="chords" checked> Chords / Pads</label>
+        <label class="check-label"><input type="checkbox" name="gen-track" value="lead"> Lead</label>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Tempo override (optional)</label>
+        <input type="number" id="gen-tempo" placeholder="Auto-detect">
+      </div>
+      <div class="modal-field">
+        <label>Key override (optional)</label>
+        <input type="text" id="gen-key" placeholder="e.g. A minor">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" data-close="modal-generate">Cancel</button>
+      <button class="btn-primary" id="btn-generate-go">Generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Export ════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal">
+    <h2>⬇ Export Mix</h2>
+    <div class="modal-field">
+      <label>Format</label>
+      <select id="export-format">
+        <option value="wav">WAV 24-bit (lossless)</option>
+        <option value="mp3">MP3 320 kbps</option>
+        <option value="flac">FLAC (lossless compressed)</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>AI Mastering Reference Style</label>
+      <select id="export-master-ref">
+        <option value="none">Skip mastering</option>
+        <option value="warm">Warm / Vintage</option>
+        <option value="modern">Modern Pop</option>
+        <option value="cinematic">Cinematic</option>
+        <option value="neutral">Neutral / Flat</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="check-label" style="font-size:12px">
+        <input type="checkbox" id="export-stems"> Also export individual stems
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" data-close="modal-export">Cancel</button>
+      <button class="btn-primary" id="btn-export-go">Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: New Project ═══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-new-project">
+  <div class="modal">
+    <h2>New Project</h2>
+    <div class="modal-field">
+      <label>Project Name</label>
+      <input type="text" id="new-project-name" placeholder="My Song" autocomplete="off">
+    </div>
+    <div class="modal-field">
+      <label>Tempo (BPM)</label>
+      <input type="number" id="new-project-bpm" value="120" min="40" max="240">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" data-close="modal-new-project">Cancel</button>
+      <button class="btn-primary" id="btn-new-project-go">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Record ════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-record">
+  <div class="modal" style="width:440px;text-align:center">
+    <h2>● Recording</h2>
+    <div id="record-timer">0:00</div>
+    <canvas id="record-canvas"></canvas>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Recording from microphone</p>
+    <button class="btn-primary" id="btn-stop-record" style="background:var(--record-red);margin:0 auto">■ Stop Recording</button>
+  </div>
+</div>
+
+<!-- ═══ PROGRESS OVERLAY ════════════════════════════════════ -->
+<div id="progress-overlay">
+  <div class="spinner"></div>
+  <div id="progress-step">Working…</div>
+  <div class="progress-bar-wrap">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="progress-eta"></div>
+</div>
+
+<!-- ═══ SCRIPTS ═════════════════════════════════════════════ -->
+<script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/arrangement.js"></script>
+<script src="js/mixer.js"></script>
+<script src="js/transport.js"></script>
+<script src="js/effects_ui.js"></script>
+<script src="js/shortcuts.js"></script>
+<script src="js/recorder.js"></script>
+
+</body>
+</html>

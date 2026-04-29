@@ -1,0 +1,27 @@
+{
+  "name": "studio-daw",
+  "version": "0.1.0",
+  "description": "AI-powered local DAW for musicians",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.studio.daw",
+    "productName": "Studio",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "splash.html"],
+    "mac": { "category": "public.app-category.music" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" }
+  }
+}
