@@ -1,0 +1,29 @@
+{
+  "name": "studio-daw",
+  "version": "0.1.0",
+  "description": "Studio — a local DAW with AI stem separation and generation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.studio.daw",
+    "productName": "Studio",
+    "directories": { "output": "../dist" },
+    "mac": { "category": "public.app-category.music" },
+    "linux": { "category": "Audio" },
+    "win": { "target": "nsis" },
+    "extraResources": [
+      { "from": "../backend", "to": "backend" },
+      { "from": "../venv", "to": "venv" },
+      { "from": "../soundfonts", "to": "soundfonts" }
+    ]
+  },
+  "dependencies": {
+    "electron": "^31.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.0.0"
+  }
+}

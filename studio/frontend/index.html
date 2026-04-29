@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio</title>
+<script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+<style>
+/* ── Variables ─────────────────────────────────────────────────── */
+:root {
+  --bg-primary: #111111;
+  --bg-surface: #1a1a1a;
+  --bg-elevated: #222222;
+  --bg-header: #252525;
+  --border: #333333;
+  --text-primary: #e8e8e8;
+  --text-secondary: #888888;
+  --accent: #4CAF50;
+  --accent-hover: #66BB6A;
+  --danger: #ef5350;
+  --record-red: #f44336;
+  --playhead: #ffffff;
+  --grid-line: #2a2a2a;
+  --grid-line-bar: #333333;
+  --track-h: 80px;
+  --header-w: 180px;
+  --toolbar-h: 48px;
+  --ruler-h: 28px;
+  --mixer-h: 168px;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg-primary); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; }
+button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+input[type=range] { cursor: pointer; }
+input[type=text], input[type=number] { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); padding: 3px 6px; border-radius: 3px; font: inherit; }
+select { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); padding: 3px 6px; border-radius: 3px; font: inherit; }
+label { color: var(--text-secondary); }
+
+/* ── App layout ────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+#toolbar {
+  height: var(--toolbar-h);
+  min-height: var(--toolbar-h);
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  z-index: 100;
+}
+
+.toolbar-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 6px;
+}
+
+.tool-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.tool-btn:hover { background: #2a2a2a; color: var(--text-primary); }
+.tool-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+.transport-btn {
+  height: 28px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: background 0.1s;
+}
+.transport-btn:hover { background: #2a2a2a; }
+.transport-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+#recBtn { color: var(--record-red); }
+#recBtn.recording { background: var(--record-red); color: #fff; animation: pulse 1s infinite; }
+
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+#recTimer { color: var(--record-red); font-size: 11px; min-width: 36px; font-variant-numeric: tabular-nums; }
+
+.bpm-wrap { display: flex; align-items: center; gap: 4px; }
+.bpm-label { color: var(--text-secondary); font-size: 11px; }
+#bpmInput {
+  width: 52px;
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#playheadDisplay {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 64px;
+}
+
+#projectName {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+#projectName:hover { border-color: var(--border); }
+
+.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+.btn-primary {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
+  font-size: 12px;
+  border: none;
+  transition: background 0.1s;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+.btn-secondary:hover { background: #2a2a2a; }
+.btn-danger {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+}
+
+/* VU meter */
+#vuWrap { width: 60px; height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+#vuMeter { height: 100%; width: 0%; background: var(--accent); border-radius: 4px; transition: width 0.05s; }
+
+/* ── Main area (track headers + arrangement + mixer) ─────────────── */
+#main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Track area row ────────────────────────────────────────────── */
+#trackArea {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Track headers sidebar ─────────────────────────────────────── */
+#trackHeaders {
+  width: var(--header-w);
+  min-width: var(--header-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#trackHeadersRulerSpacer {
+  height: var(--ruler-h);
+  min-height: var(--ruler-h);
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+}
+
+#trackHeadersList {
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.track-header {
+  height: var(--track-h);
+  min-height: var(--track-h);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 6px;
+  cursor: pointer;
+  position: relative;
+}
+.track-header:hover { background: var(--bg-elevated); }
+.track-header.selected { background: rgba(76,175,80,0.08); }
+
+.track-color-bar {
+  width: 4px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.track-header-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  padding-left: 8px;
+}
+
+.track-name-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-type-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.track-header-actions {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.th-btn {
+  width: 22px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+}
+.th-btn:hover { color: var(--text-primary); }
+.th-btn.muted { background: var(--danger); color: #fff; border-color: var(--danger); }
+.th-btn.soloed { background: #f9a825; color: #000; border-color: #f9a825; }
+
+/* Separate stems button */
+.btn-separate {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.btn-separate:hover { background: rgba(76,175,80,0.15); }
+
+/* ── Arrangement ───────────────────────────────────────────────── */
+#arrangementWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Ruler */
+.arr-ruler {
+  height: var(--ruler-h);
+  min-height: var(--ruler-h);
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ruler-mark {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 3px;
+}
+.ruler-mark.bar {
+  border-left: 1px solid var(--grid-line-bar);
+  padding-left: 3px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.ruler-mark.beat {
+  border-left: 1px solid var(--grid-line);
+  height: 50%;
+  top: auto;
+  bottom: 0;
+}
+
+/* Lanes */
+.arr-lanes {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+.arr-lane {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition: background 0.1s;
+}
+.arr-lane:nth-child(even) { background: var(--bg-primary); }
+
+/* Grid lines behind clips */
+.arr-lane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent calc(var(--bar-w, 400px) - 1px),
+    var(--grid-line-bar) calc(var(--bar-w, 400px) - 1px),
+    var(--grid-line-bar) var(--bar-w, 400px)
+  );
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Clips */
+.arr-clip {
+  position: absolute;
+  top: 4px;
+  height: calc(var(--track-h) - 8px);
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  border-top: 3px solid var(--accent);
+}
+.arr-clip:hover { border-color: rgba(255,255,255,0.2); }
+.arr-clip.selected { border: 1px solid rgba(255,255,255,0.7) !important; border-top: 3px solid var(--accent) !important; }
+
+.arr-clip-header {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  opacity: 0.9;
+}
+.arr-clip-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arr-clip-wave {
+  position: absolute;
+  left: 0; right: 8px;
+  top: 16px;
+  bottom: 0;
+  opacity: 0.7;
+}
+
+.arr-clip-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  background: rgba(255,255,255,0.05);
+}
+.arr-clip-resize-handle:hover { background: rgba(255,255,255,0.15); }
+
+/* Playhead */
+.arr-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--playhead);
+  pointer-events: none;
+  z-index: 20;
+  left: 0;
+}
+.arr-playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 9px;
+  height: 9px;
+  background: var(--playhead);
+  clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+}
+
+/* ── Mixer ─────────────────────────────────────────────────────── */
+#mixerPanel {
+  height: var(--mixer-h);
+  min-height: var(--mixer-h);
+  background: var(--bg-surface);
+  border-top: 2px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#mixerStrips {
+  display: flex;
+  height: 100%;
+  padding: 6px 6px 0;
+  gap: 4px;
+}
+
+.mix-strip {
+  width: 72px;
+  min-width: 72px;
+  height: 100%;
+  background: var(--bg-elevated);
+  border-radius: 4px 4px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 4px 0;
+  gap: 3px;
+  position: relative;
+  overflow: hidden;
+}
+.mix-strip.master { width: 88px; min-width: 88px; border-color: rgba(76,175,80,0.3); }
+
+.mix-color-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+
+.mix-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.mix-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.mix-btn {
+  width: 22px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.mix-btn:hover { color: var(--text-primary); background: var(--bg-surface); }
+.mix-btn.active.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.mix-btn.active.accent { background: #f9a825; color: #000; border-color: #f9a825; }
+
+.mix-pan-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.mix-label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mix-pan {
+  width: 60px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.mix-pan-val {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+.mix-fader-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+.mix-fader {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 20px;
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.mix-fader-val {
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── FX Panel ──────────────────────────────────────────────────── */
+.fx-panel {
+  position: fixed;
+  top: var(--toolbar-h);
+  right: 0;
+  bottom: var(--mixer-h);
+  width: 320px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+.fx-panel.hidden { transform: translateX(100%); }
+
+.fx-header {
+  height: 40px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+.fx-title { font-weight: 600; font-size: 13px; flex: 1; }
+.fx-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.fx-close:hover { color: var(--text-primary); }
+
+.fx-body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+.fx-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fx-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-header);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.fx-section-label input[type=checkbox] { accent-color: var(--accent); }
+
+.fx-controls {
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fx-knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  width: 68px;
+}
+.fx-knob input[type=range] {
+  width: 64px;
+  accent-color: var(--accent);
+}
+.fx-knob-val { color: var(--text-primary); font-size: 10px; }
+
+.eq-band {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.eq-band:last-of-type { border-bottom: none; }
+.eq-type { font-size: 10px; padding: 2px 4px; width: 80px; }
+.eq-freq, .eq-gain, .eq-q { width: 50px; font-size: 10px; padding: 2px 4px; }
+.eq-band label { font-size: 10px; color: var(--text-secondary); }
+.eq-remove-band {
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.fx-add-band {
+  font-size: 11px;
+  color: var(--accent);
+  padding: 3px 8px;
+  background: none;
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.fx-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+}
+.fx-status {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-height: 20px;
+}
+.fx-status.ok { color: var(--accent); }
+.fx-status.err { color: var(--danger); }
+
+/* ── Progress overlay ──────────────────────────────────────────── */
+#progressOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#progressOverlay.hidden { display: none; }
+
+.progress-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px 36px;
+  min-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+.progress-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#progressStep {
+  font-size: 14px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#progressBar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ── Modals ────────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal.hidden { display: none; }
+
+.modal-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 28px;
+  min-width: 380px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-row label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.form-row input, .form-row select, .form-row textarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 7px 10px;
+  border-radius: 5px;
+  font: inherit;
+}
+.form-row textarea {
+  resize: vertical;
+  min-height: 68px;
+  font-size: 13px;
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-row-h {
+  display: flex;
+  gap: 12px;
+}
+.form-row-h .form-row { flex: 1; }
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.form-check input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Context menu ──────────────────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 140px;
+  z-index: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.ctx-item {
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.ctx-item:hover { background: rgba(255,255,255,0.08); }
+.ctx-item.danger { color: var(--danger); }
+.ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
+/* ── Status bar ────────────────────────────────────────────────── */
+#statusBar {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 120px;
+}
+#statusBar.error { color: var(--danger); }
+
+/* ── Scrollbars ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ── No-tracks placeholder ─────────────────────────────────────── */
+#emptyState {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+#emptyState h2 { font-size: 18px; color: var(--text-primary); }
+#emptyState p { font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div id="toolbar">
+    <!-- Edit tools -->
+    <button class="tool-btn active" data-tool="select" title="Select (V)">↖</button>
+    <button class="tool-btn" data-tool="cut" title="Cut (C)">✂</button>
+    <button class="tool-btn" data-tool="draw" title="Draw (B)">✏</button>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- Transport -->
+    <button class="transport-btn" id="recBtn" title="Record (R)">●</button>
+    <div id="vuWrap"><div id="vuMeter"></div></div>
+    <span id="recTimer"></span>
+    <button class="transport-btn" id="playBtn" title="Play/Stop (Space)">▶</button>
+    <button class="transport-btn" id="stopBtn" title="Stop (Space)">■</button>
+    <button class="transport-btn" id="returnBtn" title="Return to Start (Enter)">↩</button>
+    <button class="transport-btn" id="loopBtn" title="Loop (L)">⟳</button>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- BPM + time -->
+    <div class="bpm-wrap">
+      <span class="bpm-label">BPM</span>
+      <input type="number" id="bpmInput" value="120" min="40" max="300" step="1">
+    </div>
+    <span id="playheadDisplay">0:00.0</span>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- Project name -->
+    <span id="projectName" title="Double-click to rename">Untitled Project</span>
+
+    <div id="statusBar"></div>
+
+    <!-- Right side actions -->
+    <div class="toolbar-right">
+      <button class="btn-secondary" id="importBtn" title="Import audio file">Import</button>
+      <input type="file" id="importFileInput" accept="audio/*" style="display:none">
+      <button class="btn-primary" id="generateBtn">✨ Generate</button>
+      <button class="btn-secondary" id="newProjectBtn">New</button>
+    </div>
+  </div>
+
+  <!-- ── Main area ─────────────────────────────────────────────── -->
+  <div id="main">
+    <div id="trackArea">
+
+      <!-- Track headers sidebar -->
+      <div id="trackHeaders">
+        <div id="trackHeadersRulerSpacer">
+          <span style="font-size:10px;color:var(--text-secondary)">TRACKS</span>
+          <button class="btn-secondary" id="addTrackBtn" style="height:20px;padding:0 8px;font-size:10px;margin-left:auto">+ Track</button>
+        </div>
+        <div id="trackHeadersList"></div>
+      </div>
+
+      <!-- Arrangement -->
+      <div id="arrangementWrap">
+        <div id="arrangementView"></div>
+        <div id="emptyState">
+          <h2>No tracks yet</h2>
+          <p>Record something or import an audio file to get started</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Mixer -->
+    <div id="mixerPanel">
+      <div id="mixerStrips"></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Progress overlay ─────────────────────────────────────────── -->
+<div id="progressOverlay" class="hidden">
+  <div class="progress-box">
+    <div class="progress-spinner"></div>
+    <div id="progressStep">Working…</div>
+    <div class="progress-track"><div id="progressBar"></div></div>
+  </div>
+</div>
+
+<!-- ── Generate modal ────────────────────────────────────────────── -->
+<div id="generateModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">✨ Generate Backing Tracks</div>
+    <div class="form-row">
+      <label>Style description</label>
+      <textarea id="genPrompt" placeholder="e.g. jazzy piano trio with upright bass, 80s synthwave, lo-fi hip hop with vinyl crackle…"></textarea>
+    </div>
+    <div class="form-row-h">
+      <div class="form-row">
+        <label>Duration (sec)</label>
+        <input type="number" id="genDuration" value="30" min="5" max="60">
+      </div>
+      <div class="form-row">
+        <label>Tempo override</label>
+        <input type="number" id="genBpm" placeholder="from project" min="40" max="300">
+      </div>
+      <div class="form-row">
+        <label>Key override</label>
+        <input type="text" id="genKey" placeholder="e.g. A minor">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="genModalClose">Cancel</button>
+      <button class="btn-primary" id="genSubmit">Generate →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Export modal ──────────────────────────────────────────────── -->
+<div id="exportModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">Export</div>
+    <div class="form-row-h">
+      <div class="form-row">
+        <label>Format</label>
+        <select id="expFormat">
+          <option value="wav">WAV 24-bit</option>
+          <option value="mp3">MP3 320k</option>
+          <option value="flac">FLAC</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Mastering reference</label>
+        <select id="expMastering">
+          <option value="neutral">Neutral</option>
+          <option value="warm">Warm / Vintage</option>
+          <option value="modern_pop">Modern Pop</option>
+          <option value="cinematic">Cinematic</option>
+        </select>
+      </div>
+    </div>
+    <label class="form-check">
+      <input type="checkbox" id="expStems"> Include individual stems
+    </label>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="expModalClose">Cancel</button>
+      <button class="btn-primary" id="expSubmit">Export →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── New project modal ─────────────────────────────────────────── -->
+<div id="newProjectModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">New Project</div>
+    <div class="form-row">
+      <label>Project name</label>
+      <input type="text" id="newProjName" placeholder="My Song" value="Untitled Project">
+    </div>
+    <div class="form-row">
+      <label>BPM</label>
+      <input type="number" id="newProjBpm" value="120" min="40" max="300">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="newProjCancel">Cancel</button>
+      <button class="btn-primary" id="newProjCreate">Create →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Track header template (cloned by app.js) ──────────────────── -->
+<template id="trackHeaderTpl">
+  <div class="track-header" data-track-id="">
+    <div class="track-color-bar"></div>
+    <div class="track-header-inner">
+      <span class="track-name-label"></span>
+      <span class="track-type-label">audio</span>
+    </div>
+    <div class="track-header-actions">
+      <button class="th-btn" data-action="mute" title="Mute (M)">M</button>
+      <button class="th-btn" data-action="solo" title="Solo (S)">S</button>
+    </div>
+  </div>
+</template>
+
+<!-- ── JS modules ────────────────────────────────────────────────── -->
+<script src="js/api.js"></script>
+<script src="js/transport.js"></script>
+<script src="js/recorder.js"></script>
+<script src="js/arrangement.js"></script>
+<script src="js/mixer.js"></script>
+<script src="js/effects_ui.js"></script>
+<script src="js/shortcuts.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// Wire up track headers, new project modal, playhead display,
+// and empty-state visibility — small glue that doesn't belong in app.js.
+
+// Track headers: rendered separately from arrangement to keep them
+// in sync with the fixed-position sidebar.
+window.addEventListener('project:changed', renderTrackHeaders);
+window.addEventListener('DOMContentLoaded', () => {
+  // New project button
+  document.getElementById('newProjectBtn')?.addEventListener('click', () => {
+    document.getElementById('newProjectModal')?.classList.remove('hidden');
+  });
+  document.getElementById('newProjCancel')?.addEventListener('click', () => {
+    document.getElementById('newProjectModal')?.classList.add('hidden');
+  });
+  document.getElementById('newProjectModal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('newProjectModal'))
+      document.getElementById('newProjectModal').classList.add('hidden');
+  });
+  document.getElementById('newProjCreate')?.addEventListener('click', async () => {
+    const name = document.getElementById('newProjName')?.value?.trim() || 'Untitled Project';
+    const bpm = parseFloat(document.getElementById('newProjBpm')?.value) || 120;
+    document.getElementById('newProjectModal')?.classList.add('hidden');
+    const proj = await window.api.newProject(name);
+    proj.bpm = bpm;
+    localStorage.setItem('studioProjectId', proj.id);
+    window.appState.project = proj;
+    document.getElementById('projectName').textContent = proj.name;
+    document.getElementById('bpmInput').value = bpm;
+    window.dispatchEvent(new CustomEvent('project:changed', { detail: proj }));
+  });
+
+  // Playhead display update
+  window.addEventListener('transport:tick', (e) => {
+    const t = e.detail.time;
+    const m = Math.floor(t / 60);
+    const s = (t % 60).toFixed(1);
+    document.getElementById('playheadDisplay').textContent =
+      `${m}:${String(Math.floor(t % 60)).padStart(2,'0')}.${s.split('.')[1]}`;
+  });
+});
+
+function renderTrackHeaders(e) {
+  const project = e?.detail || window.appState?.project;
+  if (!project) return;
+
+  const list = document.getElementById('trackHeadersList');
+  if (!list) return;
+
+  const emptyState = document.getElementById('emptyState');
+  if (emptyState) emptyState.style.display = project.tracks?.length ? 'none' : 'flex';
+
+  list.innerHTML = '';
+  (project.tracks || []).forEach(track => {
+    const tpl = document.getElementById('trackHeaderTpl');
+    const node = tpl.content.cloneNode(true);
+    const el = node.querySelector('.track-header');
+    el.dataset.trackId = track.id;
+    el.querySelector('.track-color-bar').style.background = track.color;
+    el.querySelector('.track-name-label').textContent = track.name;
+    el.querySelector('.track-type-label').textContent = track.type || 'audio';
+
+    const muteBtn = el.querySelector('[data-action=mute]');
+    const soloBtn = el.querySelector('[data-action=solo]');
+    if (track.muted) muteBtn?.classList.add('muted');
+    if (track.solo) soloBtn?.classList.add('soloed');
+
+    muteBtn?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      track.muted = !track.muted;
+      muteBtn.classList.toggle('muted', track.muted);
+      window.dispatchEvent(new CustomEvent('project:changed', { detail: project }));
+    });
+    soloBtn?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      track.solo = !track.solo;
+      soloBtn.classList.toggle('soloed', track.solo);
+      window.dispatchEvent(new CustomEvent('project:changed', { detail: project }));
+    });
+
+    // Select track on click
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.track-header.selected').forEach(h => h.classList.remove('selected'));
+      el.classList.add('selected');
+      window.appState.selectedTrack = track;
+    });
+
+    // Double-click to rename
+    el.querySelector('.track-name-label')?.addEventListener('dblclick', (ev) => {
+      ev.stopPropagation();
+      const name = prompt('Rename track:', track.name);
+      if (name !== null) {
+        track.name = name;
+        window.dispatchEvent(new CustomEvent('project:changed', { detail: project }));
+      }
+    });
+
+    list.appendChild(node);
+  });
+}
+</script>
+</body>
+</html>
