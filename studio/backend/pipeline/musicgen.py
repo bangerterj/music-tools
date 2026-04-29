@@ -18,7 +18,6 @@ import os
 from pathlib import Path
 
 import soundfile as sf
-import torch
 
 _processor = None
 _model = None
@@ -27,25 +26,33 @@ _loaded_model_id: str | None = None
 
 def _select_model() -> tuple[str, bool]:
     """Return (model_id, cpu_only) based on available hardware."""
-    if torch.cuda.is_available():
-        try:
-            vram_bytes = torch.cuda.get_device_properties(0).total_memory
-            vram_gb = vram_bytes / (1024 ** 3)
-        except Exception:
-            vram_gb = 0.0
-
-        if vram_gb >= 8.0:
-            return "facebook/musicgen-stereo-medium", False
-        else:
-            return "facebook/musicgen-stereo-small", False
-    return "facebook/musicgen-small", True
+    try:
+        import torch
+        if torch.cuda.is_available():
+            try:
+                vram_bytes = torch.cuda.get_device_properties(0).total_memory
+                vram_gb = vram_bytes / (1024 ** 3)
+            except Exception:
+                vram_gb = 0.0
+            if vram_gb >= 8.0:
+                return "facebook/musicgen-stereo-medium", False
+            else:
+                return "facebook/musicgen-stereo-small", False
+        return "facebook/musicgen-small", True
+    except ImportError:
+        return "facebook/musicgen-small", True
 
 
 def gpu_info() -> dict:
     """Return GPU availability and selected model ID."""
+    try:
+        import torch
+        has_gpu = torch.cuda.is_available()
+    except ImportError:
+        has_gpu = False
     model_id, cpu_only = _select_model()
     return {
-        "gpu": torch.cuda.is_available(),
+        "gpu": has_gpu,
         "model": model_id,
         "cpu_only": cpu_only,
     }
@@ -67,6 +74,7 @@ def generate(
     """
     global _processor, _model, _loaded_model_id
 
+    import torch
     from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
     model_id, cpu_only = _select_model()

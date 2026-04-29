@@ -13,7 +13,6 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-import torch
 
 
 def separate_stems(
@@ -27,6 +26,7 @@ def separate_stems(
     Returns dict with keys: drums, bass, other, vocals.
     Raises RuntimeError on failure.
     """
+    import torch
     from demucs.apply import apply_model
     from demucs.pretrained import get_model
 
